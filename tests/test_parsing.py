@@ -71,6 +71,29 @@ TACOMA_ITEM = {
     "listing_id": 791374637,
 }
 
+# A listing in the parser's current shape: the drivetrain under `drivetrain`,
+# the dealer under `dealer`, a per-item `currency`, and no mileage or engine.
+SR_TACOMA_ITEM = {
+    "title": "Used 2017 Toyota Tacoma SR w/ SR Convenience Package",
+    "url": "https://www.autotrader.com/cars-for-sale/vehicle/795279294",
+    "vin": "5TFAX5GN7HX099739",
+    "year": 2017,
+    "make": "Toyota",
+    "model": "Tacoma",
+    "price": {"value": 23925, "currency": None},
+    "currency": "USD",
+    "condition": "http://schema.org/UsedCondition",
+    "transmission": "6-Speed Automatic",
+    "drivetrain": "2 Wheel Drive - Rear",
+    "fuel_type": "Gasoline",
+    "fuel_efficiency": "Gasoline",
+    "exterior_color": "White",
+    "interior_color": "Gray",
+    "dealer": "Continental Automotive Group: Austin INFINITI",
+    "listing_id": 795279294,
+    "description": "Location: Austin, TX. This 2017 Toyota Tacoma is listed for $23925",
+}
+
 
 def test_build_search_url_make_model():
     assert (
@@ -81,9 +104,7 @@ def test_build_search_url_make_model():
 
 def test_build_search_url_make_only_and_hyphenated_model():
     assert build_search_url("ford") == "https://www.autotrader.com/cars-for-sale/ford"
-    assert (
-        build_search_url("ford f-150") == "https://www.autotrader.com/cars-for-sale/ford/f-150"
-    )
+    assert build_search_url("ford f-150") == "https://www.autotrader.com/cars-for-sale/ford/f-150"
 
 
 def test_build_search_url_all_and_params():
@@ -126,6 +147,20 @@ def test_normalize_tacoma_item_drive_type_and_trim():
     assert v.mileage == 87165
     assert v.location is None  # this row has no description
     assert v.listing_id == "791374637"
+
+
+def test_normalize_item_reads_drivetrain_dealer_and_currency_keys():
+    v = normalize_item(SR_TACOMA_ITEM)
+    assert v.drivetrain == "2 Wheel Drive - Rear"  # from drivetrain
+    assert v.dealer_name == "Continental Automotive Group: Austin INFINITI"  # from dealer
+    assert v.price == 23925.0
+    assert v.currency == "USD"
+    assert v.mileage is None
+    assert v.mileage_unit is None
+    assert v.location == "Austin, TX"
+    # A per-item currency wins over the USD default.
+    other = normalize_item({"title": "2021 Ford Escape", "price": 18500, "currency": "CAD"})
+    assert other.currency == "CAD"
 
 
 def test_mileage_unit_defaults_to_miles_when_omitted():

@@ -12,14 +12,16 @@ exterior/interior color, condition, dealer and listing URL/image. A few fields
 need normalizing before they are useful:
 
 * ``price`` arrives as ``{"value": 22250, "currency": null}`` — the parser
-  leaves the currency null on the US storefront, so we stamp ``USD``.
+  leaves that currency null on the US storefront, so we read the per-item
+  ``currency`` field when present and otherwise stamp ``USD``.
 * ``mileage`` is a grouped string (``"53,849"``) with a separate
   ``mileage_unit`` (``"SMI"`` statute miles / ``"KMT"`` kilometres); we parse it
   to an integer and normalize the unit to ``"mi"``/``"km"``.
 * ``condition`` is a schema.org URL (``"http://schema.org/UsedCondition"``); we
   map it to a plain ``"Used"``/``"New"``.
-* the drivetrain lands under ``drive_type`` on some rows and
-  ``drive_wheel_configuration`` on others — we read either.
+* the drivetrain lands under ``drivetrain``, ``drive_type`` or
+  ``drive_wheel_configuration`` depending on the row — we read any of them.
+* the dealer comes back as ``dealer`` or ``dealer_name`` — we read either.
 * ``fuel_efficiency`` just echoes ``fuel_type`` on most rows, so we drop it.
 * the dealer city/state is only spelled out in the ``description`` prose
   (``"Location: Los Angeles, CA. ..."``); we lift it into a ``location`` field.
@@ -31,9 +33,9 @@ import csv
 import json
 import re
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import quote
 
 AUTOTRADER_SEARCH_URL = "https://www.autotrader.com/cars-for-sale/{path}"
@@ -290,18 +292,25 @@ def normalize_item(raw: dict[str, Any]) -> Vehicle:
 
     Reads defensively: prices are validated, the schema.org condition and the
     grouped mileage string are decoded, the drivetrain is read from whichever of
-    ``drive_type`` / ``drive_wheel_configuration`` is present, and the dealer
-    location is lifted out of the description. The redundant ``fuel_efficiency``
-    echo of ``fuel_type`` is ignored.
+    ``drivetrain`` / ``drive_type`` / ``drive_wheel_configuration`` is present,
+    the dealer from ``dealer_name`` or ``dealer``, and the dealer location is
+    lifted out of the description. The redundant ``fuel_efficiency`` echo of
+    ``fuel_type`` is ignored.
     """
     price = _price_number(raw.get("price"))
     currency = (
         _currency_of(raw.get("price"))
-        or (raw.get("price_currency") or None)
+        or raw.get("currency")
+        or raw.get("price_currency")
         or DEFAULT_CURRENCY
     )
 
-    drivetrain = raw.get("drive_type") or raw.get("drive_wheel_configuration") or None
+    drivetrain = (
+        raw.get("drivetrain")
+        or raw.get("drive_type")
+        or raw.get("drive_wheel_configuration")
+        or None
+    )
 
     mileage = _int(raw.get("mileage"))
     mileage_unit = _mileage_unit(raw.get("mileage_unit"))
@@ -328,7 +337,7 @@ def normalize_item(raw: dict[str, Any]) -> Vehicle:
         fuel_type=raw.get("fuel_type") or None,
         exterior_color=raw.get("exterior_color") or None,
         interior_color=raw.get("interior_color") or None,
-        dealer_name=raw.get("dealer_name") or None,
+        dealer_name=raw.get("dealer_name") or raw.get("dealer") or None,
         location=_location(raw.get("description")),
         listing_id=_listing_id(raw),
         url=raw.get("url") or None,

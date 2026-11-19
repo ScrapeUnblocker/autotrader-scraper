@@ -1,7 +1,7 @@
 # autotrader-scraper
 
 [![CI](https://github.com/ScrapeUnblocker/autotrader-scraper/actions/workflows/ci.yml/badge.svg)](https://github.com/ScrapeUnblocker/autotrader-scraper/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Scrape Autotrader car listings into clean, typed JSON or CSV — no HTML selectors, no blocks.**
@@ -25,7 +25,8 @@ location, listing URL and image.
 - 🧩 **Normalized & validated** — the schema.org condition URL is decoded to
   `Used`/`New`, the grouped mileage string becomes an integer with a friendly
   unit, prices are validated and stamped with a currency, the drivetrain is read
-  whether Autotrader files it under `drive_type` or `drive_wheel_configuration`,
+  whether Autotrader files it under `drivetrain`, `drive_type` or
+  `drive_wheel_configuration` (and the dealer under `dealer` or `dealer_name`),
   and the dealer city/state is lifted out of the description prose.
 - 📄 **Clean pagination** — follows Autotrader's `?page=N` links with `--pages`.
 - ♻️ **Multi-query + de-dupe** — merge several searches and drop duplicate
@@ -92,7 +93,9 @@ cars = scraper.scrape(
 )
 
 for c in cars:
-    print(c.year, c.make, c.model, f"${c.price:,.0f}", f"{c.mileage:,} mi")
+    price = f"${c.price:,.0f}" if c.price is not None else "no price"
+    miles = f"{c.mileage:,} {c.mileage_unit}" if c.mileage is not None else "mileage n/a"
+    print(c.year, c.make, c.model, price, miles)
 
 to_csv(cars, "autotrader.csv")
 ```

@@ -20,10 +20,22 @@ class StubScraper:
     def scrape(self, queries, **kwargs):
         StubScraper.last_kwargs = {"queries": list(queries), **kwargs}
         return [
-            Vehicle(title="2020 Honda Accord", make="Honda", model="Accord", price=22250.0,
-                    currency="USD", mileage=53849, mileage_unit="mi"),
-            Vehicle(title="2016 Toyota Tacoma", make="Toyota", model="Tacoma", price=24180.0,
-                    currency="USD"),
+            Vehicle(
+                title="2020 Honda Accord",
+                make="Honda",
+                model="Accord",
+                price=22250.0,
+                currency="USD",
+                mileage=53849,
+                mileage_unit="mi",
+            ),
+            Vehicle(
+                title="2016 Toyota Tacoma",
+                make="Toyota",
+                model="Tacoma",
+                price=24180.0,
+                currency="USD",
+            ),
         ]
 
 
